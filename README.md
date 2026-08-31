@@ -6,10 +6,6 @@ A single self-contained inventory manager for a spare parts store — item & rat
 
 Real accounts, backed by Supabase Auth:
 
-| Username | Password | Role  |
-|----------|----------|-------|
-| Ramesh   | 1234     | Staff |
-| Admin    | 1234     | Admin |
 
 Staff can use the Item List, Store Record and Daily Requirement tabs, and can add/edit/delete any row. Only Admin can see the **Backup & Restore** tab (Excel/JSON export, restore, and "erase everything").
 
