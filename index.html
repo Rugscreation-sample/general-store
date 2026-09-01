@@ -28049,6 +28049,7 @@ ${m2}`;
       ["rate", "rate", true],
       ["quantity", "quantity", true],
       ["discount", "discount", false],
+      ["rate_after_discount", "rateAfterDiscount", true],
       ["supplier_name", "supplierName", false],
       ["photo_url", "photo", false]
     ],
@@ -28158,9 +28159,9 @@ ${m2}`;
     var pct = parseDiscountValue(discount);
     var after = r - r * pct / 100;
     if (after < 0) after = 0;
-    return money(after);
+    return Math.round(after * 100) / 100;
   }
-  function updateRateAfterDiscount() {
+  function autoFillRateAfterDiscount() {
     var modal = document.getElementById("modalBody");
     if (!modal) return;
     var rateInput = modal.querySelector('[name="rate"]');
@@ -28476,12 +28477,13 @@ ${m2}`;
     var editing = id ? state.items.find(function(r) {
       return r.id === id;
     }) : null;
-    var d = editing || { srNo: nextSr(state.items), itemName: "", specification: "", unit: "pcs", rate: "", quantity: "", discount: "", supplierName: "", photo: "" };
-    var body = "<h3>" + (editing ? "Edit item" : "Add item") + '</h3><div class="hint">Matches your "Item rate / Supplier detail" sheet.</div><div class="field" id="photoFieldWrap">' + photoFieldInner(d.photo) + '</div><div class="field-row">' + field("Sr No", "srNo", "number", d.srNo) + field("Unit", "unit", "text", d.unit, 'list="unitList"') + "</div>" + field("Item name", "itemName", "text", d.itemName, 'required placeholder="e.g. Needle high cut"') + field("Specification / category", "specification", "text", d.specification, 'list="specList" placeholder="e.g. Bathmat tuffting parts"') + '<div class="field-row">' + field("Rate", "rate", "number", d.rate, 'step="0.01" placeholder="0.00" oninput="updateRateAfterDiscount()"') + field("Quantity", "quantity", "number", d.quantity, 'step="0.01" placeholder="0"') + "</div>" + '<div class="field-row">' + field("Discount", "discount", "text", d.discount, 'placeholder="e.g. 58%" oninput="updateRateAfterDiscount()"') + field("Rate after Discount", "rateAfterDiscount", "text", computeRateAfterDiscount(d.rate, d.discount), 'readonly style="background:#f3f4f6;color:#374151;"') + "</div>" + field("Supplier name", "supplierName", "text", d.supplierName, 'list="supplierList" placeholder="e.g. Jp Electrical"') + datalist("unitList", ["pcs", "Bundle", "Box", "Roll", "Pkt", "Ltrs", "Set", "Kg", "Mtr"]) + datalist("specList", getUnique(state.items, "specification")) + datalist("supplierList", getUnique(state.items, "supplierName")) + '<div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveItem(' + (editing ? "'" + editing.id + "'" : "null") + ')">Save</button></div>';
+    var d = editing || { srNo: nextSr(state.items), itemName: "", specification: "", unit: "pcs", rate: "", quantity: "", discount: "", rateAfterDiscount: "", supplierName: "", photo: "" };
+    var rateAfterDiscountField = '<div class="field"><label>Rate after Discount</label><div style="display:flex; gap:8px;"><input name="rateAfterDiscount" type="number" step="0.01" placeholder="0.00" value="' + escAttr(d.rateAfterDiscount === void 0 || d.rateAfterDiscount === null ? "" : d.rateAfterDiscount) + '" style="flex:1;"><button type="button" class="btn sm" title="Fill from Rate and Discount" onclick="autoFillRateAfterDiscount()">Auto</button></div></div>';
+    var body = "<h3>" + (editing ? "Edit item" : "Add item") + '</h3><div class="hint">Matches your "Item rate / Supplier detail" sheet.</div><div class="field" id="photoFieldWrap">' + photoFieldInner(d.photo) + '</div><div class="field-row">' + field("Sr No", "srNo", "number", d.srNo) + field("Unit", "unit", "text", d.unit, 'list="unitList"') + "</div>" + field("Item name", "itemName", "text", d.itemName, 'required placeholder="e.g. Needle high cut"') + field("Specification / category", "specification", "text", d.specification, 'list="specList" placeholder="e.g. Bathmat tuffting parts"') + '<div class="field-row">' + field("Rate", "rate", "number", d.rate, 'step="0.01" placeholder="0.00"') + field("Quantity", "quantity", "number", d.quantity, 'step="0.01" placeholder="0"') + "</div>" + '<div class="field-row">' + field("Discount", "discount", "text", d.discount, 'placeholder="e.g. 58%"') + rateAfterDiscountField + "</div>" + field("Supplier name", "supplierName", "text", d.supplierName, 'list="supplierList" placeholder="e.g. Jp Electrical"') + datalist("unitList", ["pcs", "Bundle", "Box", "Roll", "Pkt", "Ltrs", "Set", "Kg", "Mtr"]) + datalist("specList", getUnique(state.items, "specification")) + datalist("supplierList", getUnique(state.items, "supplierName")) + '<div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveItem(' + (editing ? "'" + editing.id + "'" : "null") + ')">Save</button></div>';
     openModal(body);
   }
   async function saveItem(id) {
-    var v = readForm(["srNo", "itemName", "specification", "unit", "rate", "quantity", "discount", "supplierName", "photo"]);
+    var v = readForm(["srNo", "itemName", "specification", "unit", "rate", "quantity", "discount", "rateAfterDiscount", "supplierName", "photo"]);
     if (!v.itemName.trim()) {
       toast("Item name is required");
       return;
