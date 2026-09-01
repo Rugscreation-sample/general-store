@@ -28047,6 +28047,7 @@ ${m2}`;
       ["specification", "specification", false],
       ["unit", "unit", false],
       ["rate", "rate", true],
+      ["quantity", "quantity", true],
       ["discount", "discount", false],
       ["supplier_name", "supplierName", false],
       ["photo_url", "photo", false]
@@ -28441,9 +28442,9 @@ ${m2}`;
     if (!rows.length) {
       html += emptyState(state.items.length ? "No items match your search." : "No items yet. Add your first part, or import an Excel/CSV file exported from your rate-list sheet.");
     } else {
-      html += '<div class="tablewrap"><table><thead><tr><th>Photo</th><th>Sr</th><th>Item Name</th><th>Specification</th><th>Unit</th><th>Rate</th><th>Discount</th><th>Supplier</th><th></th></tr></thead><tbody>';
+      html += '<div class="tablewrap"><table><thead><tr><th>Photo</th><th>Sr</th><th>Item Name</th><th>Specification</th><th>Unit</th><th>Rate</th><th>Quantity</th><th>Discount</th><th>Supplier</th><th></th></tr></thead><tbody>';
       rows.forEach(function(r) {
-        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + "</td><td>" + esc(r.specification) + "</td><td>" + esc(r.unit) + '</td><td class="num">' + (r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014") + '</td><td class="num">' + esc(r.discount || "\u2014") + "</td><td>" + esc(r.supplierName) + '</td><td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
+        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + "</td><td>" + esc(r.specification) + "</td><td>" + esc(r.unit) + '</td><td class="num">' + (r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014") + '</td><td class="num">' + (r.quantity !== void 0 && r.quantity !== null && r.quantity !== "" ? fmt(r.quantity) : "\u2014") + '</td><td class="num">' + esc(r.discount || "\u2014") + "</td><td>" + esc(r.supplierName) + '</td><td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -28453,12 +28454,12 @@ ${m2}`;
     var editing = id ? state.items.find(function(r) {
       return r.id === id;
     }) : null;
-    var d = editing || { srNo: nextSr(state.items), itemName: "", specification: "", unit: "pcs", rate: "", discount: "", supplierName: "", photo: "" };
-    var body = "<h3>" + (editing ? "Edit item" : "Add item") + '</h3><div class="hint">Matches your "Item rate / Supplier detail" sheet.</div><div class="field" id="photoFieldWrap">' + photoFieldInner(d.photo) + '</div><div class="field-row">' + field("Sr No", "srNo", "number", d.srNo) + field("Unit", "unit", "text", d.unit, 'list="unitList"') + "</div>" + field("Item name", "itemName", "text", d.itemName, 'required placeholder="e.g. Needle high cut"') + field("Specification / category", "specification", "text", d.specification, 'list="specList" placeholder="e.g. Bathmat tuffting parts"') + '<div class="field-row">' + field("Rate", "rate", "number", d.rate, 'step="0.01" placeholder="0.00"') + field("Discount", "discount", "text", d.discount, 'placeholder="e.g. 58%"') + "</div>" + field("Supplier name", "supplierName", "text", d.supplierName, 'list="supplierList" placeholder="e.g. Jp Electrical"') + datalist("unitList", ["pcs", "Bundle", "Box", "Roll", "Pkt", "Ltrs", "Set", "Kg", "Mtr"]) + datalist("specList", getUnique(state.items, "specification")) + datalist("supplierList", getUnique(state.items, "supplierName")) + '<div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveItem(' + (editing ? "'" + editing.id + "'" : "null") + ')">Save</button></div>';
+    var d = editing || { srNo: nextSr(state.items), itemName: "", specification: "", unit: "pcs", rate: "", quantity: "", discount: "", supplierName: "", photo: "" };
+    var body = "<h3>" + (editing ? "Edit item" : "Add item") + '</h3><div class="hint">Matches your "Item rate / Supplier detail" sheet.</div><div class="field" id="photoFieldWrap">' + photoFieldInner(d.photo) + '</div><div class="field-row">' + field("Sr No", "srNo", "number", d.srNo) + field("Unit", "unit", "text", d.unit, 'list="unitList"') + "</div>" + field("Item name", "itemName", "text", d.itemName, 'required placeholder="e.g. Needle high cut"') + field("Specification / category", "specification", "text", d.specification, 'list="specList" placeholder="e.g. Bathmat tuffting parts"') + '<div class="field-row">' + field("Rate", "rate", "number", d.rate, 'step="0.01" placeholder="0.00"') + field("Quantity", "quantity", "number", d.quantity, 'step="0.01" placeholder="0"') + "</div>" + field("Discount", "discount", "text", d.discount, 'placeholder="e.g. 58%"') + field("Supplier name", "supplierName", "text", d.supplierName, 'list="supplierList" placeholder="e.g. Jp Electrical"') + datalist("unitList", ["pcs", "Bundle", "Box", "Roll", "Pkt", "Ltrs", "Set", "Kg", "Mtr"]) + datalist("specList", getUnique(state.items, "specification")) + datalist("supplierList", getUnique(state.items, "supplierName")) + '<div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveItem(' + (editing ? "'" + editing.id + "'" : "null") + ')">Save</button></div>';
     openModal(body);
   }
   async function saveItem(id) {
-    var v = readForm(["srNo", "itemName", "specification", "unit", "rate", "discount", "supplierName", "photo"]);
+    var v = readForm(["srNo", "itemName", "specification", "unit", "rate", "quantity", "discount", "supplierName", "photo"]);
     if (!v.itemName.trim()) {
       toast("Item name is required");
       return;
@@ -28861,9 +28862,9 @@ ${m2}`;
   window.state = state;
   var SHEET_SCHEMA = {
     items: {
-      cols: ["srNo", "itemName", "specification", "unit", "rate", "discount", "supplierName"],
-      headers: ["Sr No", "Item Name", "Specification", "Unit", "Rate", "Discount", "Supplier Name"],
-      numeric: ["srNo", "rate"]
+      cols: ["srNo", "itemName", "specification", "unit", "rate", "quantity", "discount", "supplierName"],
+      headers: ["Sr No", "Item Name", "Specification", "Unit", "Rate", "Quantity", "Discount", "Supplier Name"],
+      numeric: ["srNo", "rate", "quantity"]
     },
     ledger: {
       cols: ["srNo", "date", "partyName", "billNo", "sparePartName", "uom", "openingStock", "receivedQty", "totalStock", "issueDate", "issueQty", "balanceStock", "departmentName", "rackLocation", "remarks"],
