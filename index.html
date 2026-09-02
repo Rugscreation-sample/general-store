@@ -28971,15 +28971,31 @@ ${m2}`;
     importSheets(bucket, wb, checked);
     window._pendingWb = null;
   }
+  var _importError = null;
+  var _importSkipped = 0;
   async function importSheets(bucket, wb, sheetNames) {
     var total = 0;
+    _importError = null;
+    _importSkipped = 0;
     toast("Importing\u2026");
     for (var i = 0; i < sheetNames.length; i++) {
       var ws = wb.Sheets[sheetNames[i]];
       if (!ws) continue;
       total += await rowsToRecords(bucket, XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" }));
     }
-    toast(total + " row" + (total === 1 ? "" : "s") + " imported");
+    reportImportResult(total);
+  }
+  function reportImportResult(total) {
+    if (total === 0 && _importError) {
+      toast("Import failed: " + _importError);
+      console.error("Import failed. Full Supabase error:", _importError);
+    } else if (total === 0 && _importSkipped > 0) {
+      toast("0 rows imported \u2014 " + _importSkipped + " row" + (_importSkipped === 1 ? "" : "s") + " had no Item Name / name column, so " + (_importSkipped === 1 ? "it was" : "they were") + " skipped. Check your header row matches exactly.");
+    } else {
+      var msg = total + " row" + (total === 1 ? "" : "s") + " imported";
+      if (_importSkipped > 0) msg += " (" + _importSkipped + " skipped \u2014 missing name)";
+      toast(msg);
+    }
   }
   async function rowsToRecords(bucket, rows) {
     var schema = SHEET_SCHEMA[bucket];
@@ -29010,14 +29026,19 @@ ${m2}`;
         rec.balanceQty = Math.max(0, rec.orderQty - rec.received);
       }
       var nameKey = bucket === "items" ? "itemName" : bucket === "ledger" ? "sparePartName" : "itemName";
-      if (!rec[nameKey]) return;
+      if (!rec[nameKey]) {
+        _importSkipped++;
+        return;
+      }
       toInsert.push(appToRow(bucket, rec));
     });
     if (!toInsert.length) return 0;
     var table = TABLE_NAME[bucket];
     var res = await sb.from(table).insert(toInsert).select();
     if (res.error) {
-      toast("Import failed: " + res.error.message);
+      var e = res.error;
+      _importError = e.message + (e.details ? " \u2014 " + e.details : "") + (e.hint ? " (hint: " + e.hint + ")" : "") + (e.code ? " [code " + e.code + "]" : "");
+      console.error("Supabase insert error while importing:", e);
       return 0;
     }
     (res.data || []).forEach(function(row) {
@@ -29034,8 +29055,10 @@ ${m2}`;
         toast("Empty or unreadable CSV");
         return;
       }
+      _importError = null;
+      _importSkipped = 0;
       var added = await rowsToRecords(bucket, rows);
-      toast(added + " row" + (added === 1 ? "" : "s") + " imported");
+      reportImportResult(added);
     };
     reader.readAsText(file);
   }
