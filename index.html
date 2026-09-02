@@ -28456,9 +28456,9 @@ ${m2}`;
     if (!rows.length) {
       html += emptyState(state.items.length ? "No items match your search." : "No items yet. Add your first part, or import an Excel/CSV file exported from your rate-list sheet.");
     } else {
-      html += '<div class="tablewrap"><table><thead><tr><th>Photo</th><th>Sr</th><th>Item Name</th><th>Specification</th><th>Unit</th><th>Rate</th><th>Quantity</th><th>Discount</th><th>Supplier</th><th></th></tr></thead><tbody>';
+      html += '<div class="tablewrap"><table><thead><tr><th>Photo</th><th>Sr</th><th>Item Name</th><th>Specification</th><th>Unit</th><th>Rate</th><th>Quantity</th><th>Discount</th><th>Rate After Discount</th><th>Supplier</th><th></th></tr></thead><tbody>';
       rows.forEach(function(r) {
-        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + "</td><td>" + esc(r.specification) + "</td><td>" + esc(r.unit) + '</td><td class="num">' + (r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014") + '</td><td class="num">' + (r.quantity !== void 0 && r.quantity !== null && r.quantity !== "" ? fmt(r.quantity) : "\u2014") + '</td><td class="num">' + esc(r.discount || "\u2014") + "</td><td>" + esc(r.supplierName) + '</td><td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
+        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + "</td><td>" + esc(r.specification) + "</td><td>" + esc(r.unit) + '</td><td class="num">' + (r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014") + '</td><td class="num">' + (r.quantity !== void 0 && r.quantity !== null && r.quantity !== "" ? fmt(r.quantity) : "\u2014") + '</td><td class="num">' + esc(r.discount || "\u2014") + '</td><td class="num">' + (r.rateAfterDiscount !== void 0 && r.rateAfterDiscount !== null && r.rateAfterDiscount !== "" ? money(r.rateAfterDiscount) : "\u2014") + "</td><td>" + esc(r.supplierName) + '</td><td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -28877,9 +28877,9 @@ ${m2}`;
   window.state = state;
   var SHEET_SCHEMA = {
     items: {
-      cols: ["srNo", "itemName", "specification", "unit", "rate", "quantity", "discount", "supplierName"],
-      headers: ["Sr No", "Item Name", "Specification", "Unit", "Rate", "Quantity", "Discount", "Supplier Name"],
-      numeric: ["srNo", "rate", "quantity"]
+      cols: ["srNo", "itemName", "specification", "unit", "rate", "quantity", "discount", "rateAfterDiscount", "supplierName"],
+      headers: ["Sr No", "Item Name", "Specification", "Unit", "Rate", "Quantity", "Discount", "Rate After Discount", "Supplier Name"],
+      numeric: ["srNo", "rate", "quantity", "rateAfterDiscount"]
     },
     ledger: {
       cols: ["srNo", "date", "partyName", "billNo", "sparePartName", "uom", "openingStock", "receivedQty", "totalStock", "issueDate", "issueQty", "balanceStock", "departmentName", "rackLocation", "remarks"],
