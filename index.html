@@ -28176,7 +28176,8 @@ ${m2}`;
     activity: [],
     settings: load(LS_KEYS.settings, { lowStock: 5 }),
     search: { items: "", ledger: "", req: "" },
-    filter: { department: "", specification: "" }
+    filter: { department: "", specification: "" },
+    selected: { items: {}, ledger: {}, req: {} }
   };
   var usersLoading = false;
   var activityLoading = false;
@@ -28588,19 +28589,22 @@ ${m2}`;
       return '<div class="row-item"><span>' + esc(r.itemName || "(unnamed)") + ' <span class="rowtxt-sub">' + esc(r.department || "") + '</span></span><span class="tag mid">Pending ' + fmt(r.balanceQty) + " " + esc(r.uom || "") + "</span></div>";
     }).join("");
   }
-  function renderItems(c, actions) {
-    actions.innerHTML = btn("Import", "importItems()", "ghost") + btn("Export Excel", "exportExcel('items')", "ghost") + btn("+ Add Item", "openItemForm()", "primary");
-    var rows = state.items.filter(function(r) {
+  function filteredItems() {
+    return state.items.filter(function(r) {
       var q = state.search.items.toLowerCase();
       return !q || (r.itemName || "").toLowerCase().indexOf(q) > -1 || (r.supplierName || "").toLowerCase().indexOf(q) > -1 || (r.specification || "").toLowerCase().indexOf(q) > -1;
     });
-    var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item, specification or supplier\u2026" value="' + esc(state.search.items) + '" oninput="state.search.items=this.value; renderOnly()"><span class="count-pill">' + rows.length + " of " + state.items.length + "</span></div>";
+  }
+  function renderItems(c, actions) {
+    var rows = filteredItems();
+    actions.innerHTML = btn("Import", "importItems()", "ghost") + btn("Export Excel", "exportExcel('items')", "ghost") + bulkDeleteBtn("items") + btn("+ Add Item", "openItemForm()", "primary");
+    var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item, specification or supplier\u2026" value="' + esc(state.search.items) + '" oninput="state.search.items=this.value; renderOnly()">' + selectAllToggle("items", rows) + '<span class="count-pill">' + rows.length + " of " + state.items.length + "</span></div>";
     if (!rows.length) {
       html += emptyState(state.items.length ? "No items match your search." : "No items yet. Add your first part, or import an Excel/CSV file exported from your rate-list sheet.");
     } else {
-      html += '<div class="tablewrap"><table><thead><tr><th>Photo</th><th>Sr</th><th>Item Name</th><th>Specification</th><th>Unit</th><th>Rate</th><th>Quantity</th><th>Discount</th><th>Rate After Discount</th><th>Supplier</th><th></th></tr></thead><tbody>';
+      html += '<div class="tablewrap"><table><thead><tr><th style="width:34px;"></th><th>Photo</th><th>Sr</th><th>Item Name</th><th>Specification</th><th>Unit</th><th>Rate</th><th>Quantity</th><th>Discount</th><th>Rate After Discount</th><th>Supplier</th><th></th></tr></thead><tbody>';
       rows.forEach(function(r) {
-        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + "</td><td>" + esc(r.specification) + "</td><td>" + esc(r.unit) + '</td><td class="num">' + (r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014") + '</td><td class="num">' + (r.quantity !== void 0 && r.quantity !== null && r.quantity !== "" ? fmt(r.quantity) : "\u2014") + '</td><td class="num">' + esc(r.discount || "\u2014") + '</td><td class="num">' + (r.rateAfterDiscount !== void 0 && r.rateAfterDiscount !== null && r.rateAfterDiscount !== "" ? money(r.rateAfterDiscount) : "\u2014") + "</td><td>" + esc(r.supplierName) + '</td><td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
+        html += "<tr><td>" + rowCheckbox("items", r.id) + "</td><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + "</td><td>" + esc(r.specification) + "</td><td>" + esc(r.unit) + '</td><td class="num">' + (r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014") + '</td><td class="num">' + (r.quantity !== void 0 && r.quantity !== null && r.quantity !== "" ? fmt(r.quantity) : "\u2014") + '</td><td class="num">' + esc(r.discount || "\u2014") + '</td><td class="num">' + (r.rateAfterDiscount !== void 0 && r.rateAfterDiscount !== null && r.rateAfterDiscount !== "" ? money(r.rateAfterDiscount) : "\u2014") + "</td><td>" + esc(r.supplierName) + '</td><td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -28644,25 +28648,28 @@ ${m2}`;
     renderOnly();
     toast("Item saved");
   }
-  function renderLedger(c, actions) {
-    actions.innerHTML = btn("Import", "importLedger()", "ghost") + btn("Export Excel", "exportExcel('ledger')", "ghost") + btn("+ Add Entry", "openLedgerForm()", "primary");
-    var depts = getUnique(state.ledger, "departmentName");
-    var rows = state.ledger.filter(function(r) {
+  function filteredLedger() {
+    return state.ledger.filter(function(r) {
       var q = state.search.ledger.toLowerCase();
       var mq = !q || (r.sparePartName || "").toLowerCase().indexOf(q) > -1 || (r.partyName || "").toLowerCase().indexOf(q) > -1 || (r.rackLocation || "").toLowerCase().indexOf(q) > -1 || (r.billNo || "").toLowerCase().indexOf(q) > -1;
       var mf = !state.filter.department || r.departmentName === state.filter.department;
       return mq && mf;
     });
+  }
+  function renderLedger(c, actions) {
+    var depts = getUnique(state.ledger, "departmentName");
+    var rows = filteredLedger();
+    actions.innerHTML = btn("Import", "importLedger()", "ghost") + btn("Export Excel", "exportExcel('ledger')", "ghost") + bulkDeleteBtn("ledger") + btn("+ Add Entry", "openLedgerForm()", "primary");
     var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search part, party, bill or rack\u2026" value="' + esc(state.search.ledger) + '" oninput="state.search.ledger=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
       return "<option " + (state.filter.department === d ? "selected" : "") + ' value="' + escAttr(d) + '">' + esc(d) + "</option>";
-    }).join("") + '</select><span class="count-pill">' + rows.length + " of " + state.ledger.length + "</span></div>";
+    }).join("") + "</select>" + selectAllToggle("ledger", rows) + '<span class="count-pill">' + rows.length + " of " + state.ledger.length + "</span></div>";
     if (!rows.length) {
       html += emptyState(state.ledger.length ? "No entries match your search/filter." : "No stock entries yet. Add one, or import an Excel/CSV file exported from your Store Record sheet (all sheets in a workbook, e.g. one per day, can be imported and merged together).");
     } else {
-      html += '<div class="tablewrap"><table><thead><tr><th>Photo</th><th>Sr</th><th>Date</th><th>Spare Part</th><th>Party / Bill</th><th>Uom</th><th>Opening</th><th>Received</th><th>Total</th><th>Issued</th><th>Balance</th><th>Department</th><th>Rack</th><th></th></tr></thead><tbody>';
+      html += '<div class="tablewrap"><table><thead><tr><th style="width:34px;"></th><th>Photo</th><th>Sr</th><th>Date</th><th>Spare Part</th><th>Party / Bill</th><th>Uom</th><th>Opening</th><th>Received</th><th>Total</th><th>Issued</th><th>Balance</th><th>Department</th><th>Rack</th><th></th></tr></thead><tbody>';
       rows.forEach(function(r) {
         var balCls = num(r.balanceStock) <= 0 ? "low" : num(r.balanceStock) <= state.settings.lowStock ? "mid" : "ok";
-        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(fmtDate(r.date)) + "</td><td>" + esc(r.sparePartName) + "</td><td>" + esc(r.partyName) + (r.billNo ? ' <span class="rowtxt-sub">#' + esc(r.billNo) + "</span>" : "") + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.openingStock) + '</td><td class="num">' + fmt(r.receivedQty) + '</td><td class="num">' + fmt(r.totalStock) + '</td><td class="num">' + fmt(r.issueQty) + '</td><td class="num"><span class="tag ' + balCls + '">' + fmt(r.balanceStock) + "</span></td><td>" + esc(r.departmentName) + "</td><td>" + esc(r.rackLocation) + '</td><td class="actions">' + iconBtn("edit", "openLedgerForm('" + r.id + "')") + iconBtn("del", "confirmDelete('ledger','" + r.id + "','" + escAttr(r.sparePartName) + "')") + "</td></tr>";
+        html += "<tr><td>" + rowCheckbox("ledger", r.id) + "</td><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(fmtDate(r.date)) + "</td><td>" + esc(r.sparePartName) + "</td><td>" + esc(r.partyName) + (r.billNo ? ' <span class="rowtxt-sub">#' + esc(r.billNo) + "</span>" : "") + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.openingStock) + '</td><td class="num">' + fmt(r.receivedQty) + '</td><td class="num">' + fmt(r.totalStock) + '</td><td class="num">' + fmt(r.issueQty) + '</td><td class="num"><span class="tag ' + balCls + '">' + fmt(r.balanceStock) + "</span></td><td>" + esc(r.departmentName) + "</td><td>" + esc(r.rackLocation) + '</td><td class="actions">' + iconBtn("edit", "openLedgerForm('" + r.id + "')") + iconBtn("del", "confirmDelete('ledger','" + r.id + "','" + escAttr(r.sparePartName) + "')") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -28725,18 +28732,21 @@ ${m2}`;
     renderOnly();
     toast("Store record saved");
   }
-  function renderRequirement(c, actions) {
-    actions.innerHTML = btn("Import", "importReq()", "ghost") + btn("Export Excel", "exportExcel('req')", "ghost") + btn("+ Add Request", "openReqForm()", "primary");
-    var depts = getUnique(state.req, "department");
-    var rows = state.req.filter(function(r) {
+  function filteredReq() {
+    return state.req.filter(function(r) {
       var q = state.search.req.toLowerCase();
       var mq = !q || (r.itemName || "").toLowerCase().indexOf(q) > -1;
       var mf = !state.filter.department || r.department === state.filter.department;
       return mq && mf;
     });
+  }
+  function renderRequirement(c, actions) {
+    var depts = getUnique(state.req, "department");
+    var rows = filteredReq();
+    actions.innerHTML = btn("Import", "importReq()", "ghost") + btn("Export Excel", "exportExcel('req')", "ghost") + bulkDeleteBtn("req") + btn("+ Add Request", "openReqForm()", "primary");
     var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item\u2026" value="' + esc(state.search.req) + '" oninput="state.search.req=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
       return "<option " + (state.filter.department === d ? "selected" : "") + ' value="' + escAttr(d) + '">' + esc(d) + "</option>";
-    }).join("") + '</select><span class="count-pill">' + rows.length + " of " + state.req.length + "</span></div>";
+    }).join("") + "</select>" + selectAllToggle("req", rows) + '<span class="count-pill">' + rows.length + " of " + state.req.length + "</span></div>";
     if (!rows.length) {
       html += emptyState(state.req.length ? "No requests match your search/filter." : "No requirements logged yet. Add one, or import an Excel/CSV file exported from your Daily Store Requirement sheet.");
     } else {
@@ -28746,10 +28756,10 @@ ${m2}`;
         (grouped[k] = grouped[k] || []).push(r);
       });
       Object.keys(grouped).forEach(function(dept) {
-        html += '<div class="panel"><h2>' + esc(dept) + '</h2><div class="tablewrap" style="border:none;"><table><thead><tr><th>Sr</th><th>Item Name</th><th>Order Qty</th><th>Uom</th><th>Received</th><th>Balance</th><th></th></tr></thead><tbody>';
+        html += '<div class="panel"><h2>' + esc(dept) + '</h2><div class="tablewrap" style="border:none;"><table><thead><tr><th style="width:34px;"></th><th>Sr</th><th>Item Name</th><th>Order Qty</th><th>Uom</th><th>Received</th><th>Balance</th><th></th></tr></thead><tbody>';
         grouped[dept].forEach(function(r) {
           var balCls = num(r.balanceQty) <= 0 ? "ok" : "mid";
-          html += "<tr><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + '</td><td class="num">' + fmt(r.orderQty) + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.received) + '</td><td class="num"><span class="tag ' + balCls + '">' + (num(r.balanceQty) <= 0 ? "Complete" : fmt(r.balanceQty)) + '</span></td><td class="actions">' + iconBtn("edit", "openReqForm('" + r.id + "')") + iconBtn("del", "confirmDelete('req','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
+          html += "<tr><td>" + rowCheckbox("req", r.id) + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + '</td><td class="num">' + fmt(r.orderQty) + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.received) + '</td><td class="num"><span class="tag ' + balCls + '">' + (num(r.balanceQty) <= 0 ? "Complete" : fmt(r.balanceQty)) + '</span></td><td class="actions">' + iconBtn("edit", "openReqForm('" + r.id + "')") + iconBtn("del", "confirmDelete('req','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
         });
         html += "</tbody></table></div></div>";
       });
@@ -29096,9 +29106,76 @@ ${m2}`;
     state[bucket] = state[bucket].filter(function(r) {
       return r.id !== id;
     });
+    if (state.selected[bucket]) delete state.selected[bucket][id];
     closeModal();
     renderOnly();
     toast("Deleted");
+  }
+  function visibleRows(bucket) {
+    return bucket === "items" ? filteredItems() : bucket === "ledger" ? filteredLedger() : filteredReq();
+  }
+  function isSelected(bucket, id) {
+    return !!(state.selected[bucket] && state.selected[bucket][id]);
+  }
+  function selCount(bucket) {
+    return state.selected[bucket] ? Object.keys(state.selected[bucket]).length : 0;
+  }
+  function toggleOne(bucket, id, checked) {
+    if (!state.selected[bucket]) state.selected[bucket] = {};
+    if (checked) state.selected[bucket][id] = true;
+    else delete state.selected[bucket][id];
+    renderOnly();
+  }
+  function toggleAllVisible(bucket, checked) {
+    if (!state.selected[bucket]) state.selected[bucket] = {};
+    visibleRows(bucket).forEach(function(r) {
+      if (checked) state.selected[bucket][r.id] = true;
+      else delete state.selected[bucket][r.id];
+    });
+    renderOnly();
+  }
+  function rowCheckbox(bucket, id) {
+    return '<input type="checkbox" style="width:18px;height:18px;cursor:pointer;" ' + (isSelected(bucket, id) ? "checked" : "") + ' onchange="toggleOne(\'' + bucket + "','" + id + '\', this.checked)">';
+  }
+  function selectAllToggle(bucket, rows) {
+    var allChecked = rows.length > 0 && rows.every(function(r) {
+      return isSelected(bucket, r.id);
+    });
+    return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);white-space:nowrap;cursor:pointer;"><input type="checkbox" style="width:16px;height:16px;cursor:pointer;" ' + (allChecked ? "checked" : "") + ' onchange="toggleAllVisible(\'' + bucket + "', this.checked)\"> Select all</label>";
+  }
+  function bulkDeleteBtn(bucket) {
+    var n = selCount(bucket);
+    return n ? btn("Delete selected (" + n + ")", "confirmBulkDelete('" + bucket + "')", "danger") : "";
+  }
+  function confirmBulkDelete(bucket) {
+    var ids = state.selected[bucket] ? Object.keys(state.selected[bucket]) : [];
+    if (!ids.length) return;
+    var body = "<h3>Delete " + ids.length + " " + (ids.length === 1 ? "entry" : "entries") + '?</h3><div class="hint">This removes ' + (ids.length === 1 ? "it" : "them") + ' for everyone. This cannot be undone.</div><div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn danger" onclick="doBulkDelete(\'' + bucket + '\')">Delete ' + ids.length + "</button></div>";
+    openModal(body);
+  }
+  async function doBulkDelete(bucket) {
+    var ids = state.selected[bucket] ? Object.keys(state.selected[bucket]) : [];
+    if (!ids.length) {
+      closeModal();
+      return;
+    }
+    var table = TABLE_NAME[bucket];
+    var res = await sb.from(table).delete().in("id", ids);
+    if (res.error) {
+      toast("Could not delete: " + res.error.message);
+      return;
+    }
+    var idSet = {};
+    ids.forEach(function(id) {
+      idSet[id] = true;
+    });
+    state[bucket] = state[bucket].filter(function(r) {
+      return !idSet[r.id];
+    });
+    state.selected[bucket] = {};
+    closeModal();
+    renderOnly();
+    toast(ids.length + " " + (ids.length === 1 ? "entry" : "entries") + " deleted");
   }
   function iconBtn(kind, onclick) {
     var glyph = kind === "edit" ? "&#9998;" : "&#10005;";
