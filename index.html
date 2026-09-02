@@ -90,6 +90,10 @@
   .card .sub{ font-size:12px; color:var(--sub); margin-top:4px; }
   .card.alert{ border-color:#fde68a; background:var(--warn-bg); }
   .card.alert .value{ color:var(--warn); }
+  .card.clickable{ cursor:pointer; transition:box-shadow .15s ease, transform .15s ease; }
+  .card.clickable:hover{ box-shadow:0 4px 14px rgba(0,0,0,.09); transform:translateY(-2px); }
+  .card.clickable:active{ transform:translateY(0); box-shadow:none; }
+  .card.clickable:focus-visible{ outline:2px solid var(--brand); outline-offset:2px; }
 
   .panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:16px;}
   .panel h2{ font-size:15px; margin:0 0 12px; }
@@ -28487,16 +28491,20 @@ ${m2}`;
     var pendingReq = state.req.filter(function(r) {
       return num(r.balanceQty) > 0;
     });
-    var html = '<div class="grid-cards">' + card("Items in rate list", totalItems, "master list entries") + card("Store record entries", totalLedger, "stock ledger rows") + card("Pending requirements", pendingReq.length, "not fully received") + cardAlert("Low / out of stock", lowStock.length + outOfStock.length, "balance \u2264 " + state.settings.lowStock + " units") + "</div>";
+    var html = '<div class="grid-cards">' + card("Items in rate list", totalItems, "master list entries", "items") + card("Store record entries", totalLedger, "stock ledger rows", "ledger") + card("Pending requirements", pendingReq.length, "not fully received", "requirement") + cardAlert("Low / out of stock", lowStock.length + outOfStock.length, "balance \u2264 " + state.settings.lowStock + " units", "ledger") + "</div>";
     html += '<div class="panel"><h2>Low &amp; out-of-stock parts</h2>' + renderStockAlertList(lowStock, outOfStock) + "</div>";
     html += '<div class="panel"><h2>Open department requirements</h2>' + renderReqSummary(pendingReq) + "</div>";
     c.innerHTML = html;
   }
-  function card(label, value, sub) {
-    return '<div class="card"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div><div class="sub">' + esc(sub) + "</div></div>";
+  function cardAttrs(cls, tab) {
+    if (!tab) return ' class="' + cls + '"';
+    return ' class="' + cls + ' clickable" role="button" tabindex="0" onclick="setTab(\'' + tab + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();setTab(\'' + tab + '\')}"';
   }
-  function cardAlert(label, value, sub) {
-    return '<div class="card alert"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div><div class="sub">' + esc(sub) + "</div></div>";
+  function card(label, value, sub, tab) {
+    return "<div" + cardAttrs("card", tab) + '><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div><div class="sub">' + esc(sub) + "</div></div>";
+  }
+  function cardAlert(label, value, sub, tab) {
+    return "<div" + cardAttrs("card alert", tab) + '><div class="label">' + esc(label) + '</div><div class="value">' + esc(value) + '</div><div class="sub">' + esc(sub) + "</div></div>";
   }
   function renderStockAlertList(low, out) {
     var rows = out.slice(0, 6).concat(low.slice(0, 6));
@@ -29463,6 +29471,7 @@ ${m2}`;
   window.submitNewUser = submitNewUser;
   window.openResetPasswordForm = openResetPasswordForm;
   window.submitResetPassword = submitResetPassword;
+  window.setTab = setTab;
   boot();
 })();
 </script>
