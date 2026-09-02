@@ -28173,11 +28173,13 @@ ${m2}`;
     req: [],
     users: [],
     usersLoaded: false,
+    activity: [],
     settings: load(LS_KEYS.settings, { lowStock: 5 }),
     search: { items: "", ledger: "", req: "" },
     filter: { department: "", specification: "" }
   };
   var usersLoading = false;
+  var activityLoading = false;
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
@@ -28456,6 +28458,13 @@ ${m2}`;
     document.getElementById("pageMeta").textContent = TITLES[tab][1];
     render();
     document.getElementById("content").scrollTop = 0;
+    if (tab === "dashboard" && !activityLoading) {
+      activityLoading = true;
+      loadActivity().then(function() {
+        activityLoading = false;
+        if (state.tab === "dashboard") renderOnly();
+      });
+    }
   }
   function render() {
     var c = document.getElementById("content");
@@ -28494,7 +28503,35 @@ ${m2}`;
     var html = '<div class="grid-cards">' + card("Items in rate list", totalItems, "master list entries", "items") + card("Store record entries", totalLedger, "stock ledger rows", "ledger") + card("Pending requirements", pendingReq.length, "not fully received", "requirement") + cardAlert("Low / out of stock", lowStock.length + outOfStock.length, "balance \u2264 " + state.settings.lowStock + " units", "ledger") + "</div>";
     html += '<div class="panel"><h2>Low &amp; out-of-stock parts</h2>' + renderStockAlertList(lowStock, outOfStock) + "</div>";
     html += '<div class="panel"><h2>Open department requirements</h2>' + renderReqSummary(pendingReq) + "</div>";
+    html += '<div class="panel"><h2>Recent activity</h2>' + renderActivityList(state.activity) + "</div>";
     c.innerHTML = html;
+  }
+  async function loadActivity() {
+    var res = await sb.from("csps_activity_log").select("*").order("created_at", { ascending: false }).limit(15);
+    state.activity = res.data || [];
+  }
+  function fmtDateTime(v) {
+    if (!v) return "";
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return String(v);
+    var dd = String(d.getDate()).padStart(2, "0");
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var hh = String(d.getHours()).padStart(2, "0");
+    var mi = String(d.getMinutes()).padStart(2, "0");
+    return dd + "/" + mm + "/" + d.getFullYear() + " " + hh + ":" + mi;
+  }
+  var ACTIVITY_BUCKET_LABEL = { items: "Item & Rate List", ledger: "Store Record", req: "Daily Requirement" };
+  var ACTIVITY_ACTION_LABEL = { create: "Added", update: "Updated", delete: "Deleted" };
+  var ACTIVITY_ACTION_CLASS = { create: "ok", update: "mid", delete: "low" };
+  function renderActivityList(rows) {
+    if (!rows || !rows.length) return '<div class="empty">No recent activity yet.</div>';
+    return rows.map(function(r) {
+      var actionLabel = ACTIVITY_ACTION_LABEL[r.action] || r.action;
+      var actionCls = ACTIVITY_ACTION_CLASS[r.action] || "";
+      var bucketLabel = ACTIVITY_BUCKET_LABEL[r.bucket] || r.bucket;
+      var who = r.actor_name ? " · " + r.actor_name : "";
+      return '<div class="row-item"><span><span class="tag ' + actionCls + '">' + esc(actionLabel) + '</span> ' + esc(r.label || "(unnamed)") + ' <span class="rowtxt-sub">' + esc(bucketLabel + who) + '</span></span><span class="rowtxt-sub">' + esc(fmtDateTime(r.created_at)) + "</span></div>";
+    }).join("");
   }
   function cardAttrs(cls, tab) {
     if (!tab) return ' class="' + cls + '"';
