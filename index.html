@@ -28209,11 +28209,21 @@ ${m2}`;
     if (!m) return v;
     return m[3] + "/" + m[2] + "/" + m[1];
   }
+  function excelSerialToISO(serial) {
+    var days = Math.floor(serial);
+    if (days > 60) days -= 1;
+    var ms = Date.UTC(1899, 11, 31) + days * 86400000;
+    var d = new Date(ms);
+    return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+  }
   function parseImportDate(v) {
     if (v === void 0 || v === null || v === "") return "";
     if (v instanceof Date) {
       if (isNaN(v.getTime())) return "";
       return v.getFullYear() + "-" + String(v.getMonth() + 1).padStart(2, "0") + "-" + String(v.getDate()).padStart(2, "0");
+    }
+    if (typeof v === "number" && isFinite(v) && v > 0) {
+      return excelSerialToISO(v);
     }
     var s = String(v).trim();
     if (!s) return "";
@@ -29303,7 +29313,7 @@ ${m2}`;
     var reader = new FileReader();
     reader.onload = function() {
       try {
-        var wb = XLSX.read(new Uint8Array(reader.result), { type: "array", cellDates: true });
+        var wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
         if (!wb.SheetNames.length) {
           toast("No sheets found in that file");
           return;
