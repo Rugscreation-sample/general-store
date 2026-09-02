@@ -28209,6 +28209,26 @@ ${m2}`;
     if (!m) return v;
     return m[3] + "/" + m[2] + "/" + m[1];
   }
+  function parseImportDate(v) {
+    if (v === void 0 || v === null || v === "") return "";
+    if (v instanceof Date) {
+      if (isNaN(v.getTime())) return "";
+      return v.getFullYear() + "-" + String(v.getMonth() + 1).padStart(2, "0") + "-" + String(v.getDate()).padStart(2, "0");
+    }
+    var s = String(v).trim();
+    if (!s) return "";
+    var iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+    if (iso) return iso[1] + "-" + iso[2].padStart(2, "0") + "-" + iso[3].padStart(2, "0");
+    var dmy = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/.exec(s);
+    if (dmy) {
+      var d = parseInt(dmy[1], 10), mo = parseInt(dmy[2], 10), y = parseInt(dmy[3], 10);
+      if (y < 100) y += y < 70 ? 2e3 : 1900;
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+        return y + "-" + String(mo).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      }
+    }
+    return s;
+  }
   function parseDiscountValue(discount) {
     if (discount === void 0 || discount === null || discount === "") return 0;
     var n = parseFloat(String(discount).replace(/[^0-9.\-]/g, ""));
@@ -29283,7 +29303,7 @@ ${m2}`;
     var reader = new FileReader();
     reader.onload = function() {
       try {
-        var wb = XLSX.read(new Uint8Array(reader.result), { type: "array" });
+        var wb = XLSX.read(new Uint8Array(reader.result), { type: "array", cellDates: true });
         if (!wb.SheetNames.length) {
           toast("No sheets found in that file");
           return;
@@ -29326,7 +29346,7 @@ ${m2}`;
     for (var i = 0; i < sheetNames.length; i++) {
       var ws = wb.Sheets[sheetNames[i]];
       if (!ws) continue;
-      total += await rowsToRecords(bucket, XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" }));
+      total += await rowsToRecords(bucket, XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" }));
     }
     reportImportResult(total);
   }
@@ -29359,6 +29379,8 @@ ${m2}`;
         rec[c] = idx > -1 && r[idx] !== void 0 && r[idx] !== null ? r[idx] : "";
       });
       if (bucket === "ledger") {
+        rec.date = parseImportDate(rec.date);
+        rec.issueDate = parseImportDate(rec.issueDate);
         rec.openingStock = num(rec.openingStock);
         rec.receivedQty = num(rec.receivedQty);
         rec.issueQty = num(rec.issueQty);
