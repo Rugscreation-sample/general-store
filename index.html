@@ -28147,7 +28147,7 @@ ${m2}`;
     });
     return out;
   }
-  var LS_KEYS = { settings: "cspss_settings" };
+  var LS_KEYS = { settings: "cspss_settings", hiddenCols: "cspss_hidden_cols" };
   function load(key, fallback) {
     try {
       var raw = localStorage.getItem(key);
@@ -28177,7 +28177,8 @@ ${m2}`;
     settings: load(LS_KEYS.settings, { lowStock: 5 }),
     search: { items: "", ledger: "", req: "" },
     filter: { department: "", specification: "" },
-    selected: { items: {}, ledger: {}, req: {} }
+    selected: { items: {}, ledger: {}, req: {} },
+    hiddenCols: load(LS_KEYS.hiddenCols, { items: [], ledger: [], req: [] })
   };
   var usersLoading = false;
   var activityLoading = false;
@@ -28597,14 +28598,14 @@ ${m2}`;
   }
   function renderItems(c, actions) {
     var rows = filteredItems();
-    actions.innerHTML = btn("Import", "importItems()", "ghost") + btn("Export Excel", "exportExcel('items')", "ghost") + bulkDeleteBtn("items") + btn("+ Add Item", "openItemForm()", "primary");
-    var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item, specification or supplier\u2026" value="' + esc(state.search.items) + '" oninput="state.search.items=this.value; renderOnly()">' + selectAllToggle("items", rows) + '<span class="count-pill">' + rows.length + " of " + state.items.length + "</span></div>";
+    actions.innerHTML = btn("Import", "importItems()", "ghost") + btn("Export Excel", "exportExcel('items')", "ghost") + btn("+ Add Item", "openItemForm()", "primary");
+    var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item, specification or supplier\u2026" value="' + esc(state.search.items) + '" oninput="state.search.items=this.value; renderOnly()">' + selectAllToggle("items", rows) + bulkDeleteBtn("items") + btn("Columns", "openColumnsPicker('items')", "ghost sm") + '<span class="count-pill">' + rows.length + " of " + state.items.length + "</span></div>";
     if (!rows.length) {
       html += emptyState(state.items.length ? "No items match your search." : "No items yet. Add your first part, or import an Excel/CSV file exported from your rate-list sheet.");
     } else {
-      html += '<div class="tablewrap"><table><thead><tr><th style="width:34px;"></th><th>Photo</th><th>Sr</th><th>Item Name</th><th>Specification</th><th>Unit</th><th>Rate</th><th>Quantity</th><th>Discount</th><th>Rate After Discount</th><th>Supplier</th><th></th></tr></thead><tbody>';
+      html += '<div class="tablewrap"><table><thead><tr><th style="width:34px;"></th>' + th("items", "photo", "Photo") + th("items", "sr", "Sr") + th("items", "itemName", "Item Name") + th("items", "specification", "Specification") + th("items", "unit", "Unit") + th("items", "rate", "Rate") + th("items", "quantity", "Quantity") + th("items", "discount", "Discount") + th("items", "rateAfterDiscount", "Rate After Discount") + th("items", "supplierName", "Supplier") + "<th></th></tr></thead><tbody>";
       rows.forEach(function(r) {
-        html += "<tr><td>" + rowCheckbox("items", r.id) + "</td><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + "</td><td>" + esc(r.specification) + "</td><td>" + esc(r.unit) + '</td><td class="num">' + (r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014") + '</td><td class="num">' + (r.quantity !== void 0 && r.quantity !== null && r.quantity !== "" ? fmt(r.quantity) : "\u2014") + '</td><td class="num">' + esc(r.discount || "\u2014") + '</td><td class="num">' + (r.rateAfterDiscount !== void 0 && r.rateAfterDiscount !== null && r.rateAfterDiscount !== "" ? money(r.rateAfterDiscount) : "\u2014") + "</td><td>" + esc(r.supplierName) + '</td><td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
+        html += "<tr><td>" + rowCheckbox("items", r.id) + "</td>" + td("items", "photo", r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + td("items", "sr", esc(r.srNo)) + td("items", "itemName", esc(r.itemName)) + td("items", "specification", esc(r.specification)) + td("items", "unit", esc(r.unit)) + td("items", "rate", r.rate !== void 0 && r.rate !== null && r.rate !== "" ? money(r.rate) : "\u2014", "num") + td("items", "quantity", r.quantity !== void 0 && r.quantity !== null && r.quantity !== "" ? fmt(r.quantity) : "\u2014", "num") + td("items", "discount", esc(r.discount || "\u2014"), "num") + td("items", "rateAfterDiscount", r.rateAfterDiscount !== void 0 && r.rateAfterDiscount !== null && r.rateAfterDiscount !== "" ? money(r.rateAfterDiscount) : "\u2014", "num") + td("items", "supplierName", esc(r.supplierName)) + '<td class="actions">' + iconBtn("edit", "openItemForm('" + r.id + "')") + iconBtn("del", "confirmDelete('items','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -28659,17 +28660,17 @@ ${m2}`;
   function renderLedger(c, actions) {
     var depts = getUnique(state.ledger, "departmentName");
     var rows = filteredLedger();
-    actions.innerHTML = btn("Import", "importLedger()", "ghost") + btn("Export Excel", "exportExcel('ledger')", "ghost") + bulkDeleteBtn("ledger") + btn("+ Add Entry", "openLedgerForm()", "primary");
+    actions.innerHTML = btn("Import", "importLedger()", "ghost") + btn("Export Excel", "exportExcel('ledger')", "ghost") + btn("+ Add Entry", "openLedgerForm()", "primary");
     var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search part, party, bill or rack\u2026" value="' + esc(state.search.ledger) + '" oninput="state.search.ledger=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
       return "<option " + (state.filter.department === d ? "selected" : "") + ' value="' + escAttr(d) + '">' + esc(d) + "</option>";
-    }).join("") + "</select>" + selectAllToggle("ledger", rows) + '<span class="count-pill">' + rows.length + " of " + state.ledger.length + "</span></div>";
+    }).join("") + "</select>" + selectAllToggle("ledger", rows) + bulkDeleteBtn("ledger") + btn("Columns", "openColumnsPicker('ledger')", "ghost sm") + '<span class="count-pill">' + rows.length + " of " + state.ledger.length + "</span></div>";
     if (!rows.length) {
       html += emptyState(state.ledger.length ? "No entries match your search/filter." : "No stock entries yet. Add one, or import an Excel/CSV file exported from your Store Record sheet (all sheets in a workbook, e.g. one per day, can be imported and merged together).");
     } else {
-      html += '<div class="tablewrap"><table><thead><tr><th style="width:34px;"></th><th>Photo</th><th>Sr</th><th>Date</th><th>Spare Part</th><th>Party / Bill</th><th>Uom</th><th>Opening</th><th>Received</th><th>Total</th><th>Issued</th><th>Balance</th><th>Department</th><th>Rack</th><th></th></tr></thead><tbody>';
+      html += '<div class="tablewrap"><table><thead><tr><th style="width:34px;"></th>' + th("ledger", "photo", "Photo") + th("ledger", "sr", "Sr") + th("ledger", "date", "Date") + th("ledger", "sparePart", "Spare Part") + th("ledger", "partyBill", "Party / Bill") + th("ledger", "uom", "Uom") + th("ledger", "opening", "Opening") + th("ledger", "received", "Received") + th("ledger", "total", "Total") + th("ledger", "issued", "Issued") + th("ledger", "balance", "Balance") + th("ledger", "department", "Department") + th("ledger", "rack", "Rack") + "<th></th></tr></thead><tbody>";
       rows.forEach(function(r) {
         var balCls = num(r.balanceStock) <= 0 ? "low" : num(r.balanceStock) <= state.settings.lowStock ? "mid" : "ok";
-        html += "<tr><td>" + rowCheckbox("ledger", r.id) + "</td><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(fmtDate(r.date)) + "</td><td>" + esc(r.sparePartName) + "</td><td>" + esc(r.partyName) + (r.billNo ? ' <span class="rowtxt-sub">#' + esc(r.billNo) + "</span>" : "") + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.openingStock) + '</td><td class="num">' + fmt(r.receivedQty) + '</td><td class="num">' + fmt(r.totalStock) + '</td><td class="num">' + fmt(r.issueQty) + '</td><td class="num"><span class="tag ' + balCls + '">' + fmt(r.balanceStock) + "</span></td><td>" + esc(r.departmentName) + "</td><td>" + esc(r.rackLocation) + '</td><td class="actions">' + iconBtn("edit", "openLedgerForm('" + r.id + "')") + iconBtn("del", "confirmDelete('ledger','" + r.id + "','" + escAttr(r.sparePartName) + "')") + "</td></tr>";
+        html += "<tr><td>" + rowCheckbox("ledger", r.id) + "</td>" + td("ledger", "photo", r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + td("ledger", "sr", esc(r.srNo)) + td("ledger", "date", esc(fmtDate(r.date))) + td("ledger", "sparePart", esc(r.sparePartName)) + td("ledger", "partyBill", esc(r.partyName) + (r.billNo ? ' <span class="rowtxt-sub">#' + esc(r.billNo) + "</span>" : "")) + td("ledger", "uom", esc(r.uom)) + td("ledger", "opening", fmt(r.openingStock), "num") + td("ledger", "received", fmt(r.receivedQty), "num") + td("ledger", "total", fmt(r.totalStock), "num") + td("ledger", "issued", fmt(r.issueQty), "num") + td("ledger", "balance", '<span class="tag ' + balCls + '">' + fmt(r.balanceStock) + "</span>", "num") + td("ledger", "department", esc(r.departmentName)) + td("ledger", "rack", esc(r.rackLocation)) + '<td class="actions">' + iconBtn("edit", "openLedgerForm('" + r.id + "')") + iconBtn("del", "confirmDelete('ledger','" + r.id + "','" + escAttr(r.sparePartName) + "')") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -28743,10 +28744,10 @@ ${m2}`;
   function renderRequirement(c, actions) {
     var depts = getUnique(state.req, "department");
     var rows = filteredReq();
-    actions.innerHTML = btn("Import", "importReq()", "ghost") + btn("Export Excel", "exportExcel('req')", "ghost") + bulkDeleteBtn("req") + btn("+ Add Request", "openReqForm()", "primary");
+    actions.innerHTML = btn("Import", "importReq()", "ghost") + btn("Export Excel", "exportExcel('req')", "ghost") + btn("+ Add Request", "openReqForm()", "primary");
     var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item\u2026" value="' + esc(state.search.req) + '" oninput="state.search.req=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
       return "<option " + (state.filter.department === d ? "selected" : "") + ' value="' + escAttr(d) + '">' + esc(d) + "</option>";
-    }).join("") + "</select>" + selectAllToggle("req", rows) + '<span class="count-pill">' + rows.length + " of " + state.req.length + "</span></div>";
+    }).join("") + "</select>" + selectAllToggle("req", rows) + bulkDeleteBtn("req") + btn("Columns", "openColumnsPicker('req')", "ghost sm") + '<span class="count-pill">' + rows.length + " of " + state.req.length + "</span></div>";
     if (!rows.length) {
       html += emptyState(state.req.length ? "No requests match your search/filter." : "No requirements logged yet. Add one, or import an Excel/CSV file exported from your Daily Store Requirement sheet.");
     } else {
@@ -28756,10 +28757,10 @@ ${m2}`;
         (grouped[k] = grouped[k] || []).push(r);
       });
       Object.keys(grouped).forEach(function(dept) {
-        html += '<div class="panel"><h2>' + esc(dept) + '</h2><div class="tablewrap" style="border:none;"><table><thead><tr><th style="width:34px;"></th><th>Sr</th><th>Item Name</th><th>Order Qty</th><th>Uom</th><th>Received</th><th>Balance</th><th></th></tr></thead><tbody>';
+        html += '<div class="panel"><h2>' + esc(dept) + '</h2><div class="tablewrap" style="border:none;"><table><thead><tr><th style="width:34px;"></th>' + th("req", "sr", "Sr") + th("req", "itemName", "Item Name") + th("req", "orderQty", "Order Qty") + th("req", "uom", "Uom") + th("req", "received", "Received") + th("req", "balance", "Balance") + "<th></th></tr></thead><tbody>";
         grouped[dept].forEach(function(r) {
           var balCls = num(r.balanceQty) <= 0 ? "ok" : "mid";
-          html += "<tr><td>" + rowCheckbox("req", r.id) + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.itemName) + '</td><td class="num">' + fmt(r.orderQty) + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.received) + '</td><td class="num"><span class="tag ' + balCls + '">' + (num(r.balanceQty) <= 0 ? "Complete" : fmt(r.balanceQty)) + '</span></td><td class="actions">' + iconBtn("edit", "openReqForm('" + r.id + "')") + iconBtn("del", "confirmDelete('req','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
+          html += "<tr><td>" + rowCheckbox("req", r.id) + "</td>" + td("req", "sr", esc(r.srNo)) + td("req", "itemName", esc(r.itemName)) + td("req", "orderQty", fmt(r.orderQty), "num") + td("req", "uom", esc(r.uom)) + td("req", "received", fmt(r.received), "num") + td("req", "balance", '<span class="tag ' + balCls + '">' + (num(r.balanceQty) <= 0 ? "Complete" : fmt(r.balanceQty)) + "</span>", "num") + '<td class="actions">' + iconBtn("edit", "openReqForm('" + r.id + "')") + iconBtn("del", "confirmDelete('req','" + r.id + "','" + escAttr(r.itemName) + "')") + "</td></tr>";
         });
         html += "</tbody></table></div></div>";
       });
@@ -29145,7 +29146,7 @@ ${m2}`;
   }
   function bulkDeleteBtn(bucket) {
     var n = selCount(bucket);
-    return n ? btn("Delete selected (" + n + ")", "confirmBulkDelete('" + bucket + "')", "danger") : "";
+    return n ? btn("Delete selected (" + n + ")", "confirmBulkDelete('" + bucket + "')", "danger sm") : "";
   }
   function confirmBulkDelete(bucket) {
     var ids = state.selected[bucket] ? Object.keys(state.selected[bucket]) : [];
@@ -29176,6 +29177,69 @@ ${m2}`;
     closeModal();
     renderOnly();
     toast(ids.length + " " + (ids.length === 1 ? "entry" : "entries") + " deleted");
+  }
+  var COLUMN_DEFS = {
+    items: [
+      ["photo", "Photo"],
+      ["sr", "Sr"],
+      ["itemName", "Item Name"],
+      ["specification", "Specification"],
+      ["unit", "Unit"],
+      ["rate", "Rate"],
+      ["quantity", "Quantity"],
+      ["discount", "Discount"],
+      ["rateAfterDiscount", "Rate After Discount"],
+      ["supplierName", "Supplier"]
+    ],
+    ledger: [
+      ["photo", "Photo"],
+      ["sr", "Sr"],
+      ["date", "Date"],
+      ["sparePart", "Spare Part"],
+      ["partyBill", "Party / Bill"],
+      ["uom", "Uom"],
+      ["opening", "Opening"],
+      ["received", "Received"],
+      ["total", "Total"],
+      ["issued", "Issued"],
+      ["balance", "Balance"],
+      ["department", "Department"],
+      ["rack", "Rack"]
+    ],
+    req: [
+      ["sr", "Sr"],
+      ["itemName", "Item Name"],
+      ["orderQty", "Order Qty"],
+      ["uom", "Uom"],
+      ["received", "Received"],
+      ["balance", "Balance"]
+    ]
+  };
+  function colVisible(bucket, key) {
+    var hidden = state.hiddenCols[bucket];
+    return !hidden || hidden.indexOf(key) === -1;
+  }
+  function toggleCol(bucket, key) {
+    if (!state.hiddenCols[bucket]) state.hiddenCols[bucket] = [];
+    var arr = state.hiddenCols[bucket];
+    var i = arr.indexOf(key);
+    if (i > -1) arr.splice(i, 1);
+    else arr.push(key);
+    save(LS_KEYS.hiddenCols, state.hiddenCols);
+    renderOnly();
+  }
+  function th(bucket, key, label) {
+    return colVisible(bucket, key) ? "<th>" + esc(label) + "</th>" : "";
+  }
+  function td(bucket, key, inner, cls) {
+    return colVisible(bucket, key) ? "<td" + (cls ? ' class="' + cls + '"' : "") + ">" + inner + "</td>" : "";
+  }
+  function openColumnsPicker(bucket) {
+    var cols = COLUMN_DEFS[bucket];
+    var body = '<h3>Show / hide columns</h3><div class="hint">Untick a column to hide it from the table — handy when there’s too much to scroll through. Remembered on this device.</div>' + cols.map(function(col) {
+      return '<label style="display:flex; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-size:14px;"><input type="checkbox" style="width:20px;height:20px;flex:0 0 auto;margin-right:10px;" ' + (colVisible(bucket, col[0]) ? "checked" : "") + ' onchange="toggleCol(\'' + bucket + "','" + col[0] + "')\"> " + esc(col[1]) + "</label>";
+    }).join("") + '<div class="modal-actions"><button class="btn primary" onclick="closeModal()">Done</button></div>';
+    openModal(body);
   }
   function iconBtn(kind, onclick) {
     var glyph = kind === "edit" ? "&#9998;" : "&#10005;";
@@ -29602,6 +29666,12 @@ ${m2}`;
   window.saveReq = saveReq;
   window.confirmDelete = confirmDelete;
   window.doDelete = doDelete;
+  window.toggleOne = toggleOne;
+  window.toggleAllVisible = toggleAllVisible;
+  window.confirmBulkDelete = confirmBulkDelete;
+  window.doBulkDelete = doBulkDelete;
+  window.toggleCol = toggleCol;
+  window.openColumnsPicker = openColumnsPicker;
   window.closeModal = closeModal;
   window.exportAll = exportAll;
   window.importAll = importAll;
