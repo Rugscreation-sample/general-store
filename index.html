@@ -28197,6 +28197,12 @@ ${m2}`;
   function money(n) {
     return "\u20B9" + fmt(n);
   }
+  function fmtDate(v) {
+    if (!v) return "";
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v));
+    if (!m) return v;
+    return m[3] + "/" + m[2] + "/" + m[1];
+  }
   function parseDiscountValue(discount) {
     if (discount === void 0 || discount === null || discount === "") return 0;
     var n = parseFloat(String(discount).replace(/[^0-9.\-]/g, ""));
@@ -28450,12 +28456,24 @@ ${m2}`;
   function render() {
     var c = document.getElementById("content");
     var actions = document.getElementById("topActions");
+    var active = document.activeElement;
+    var refocus = active && active.id === "searchBox" ? { selStart: active.selectionStart, selEnd: active.selectionEnd } : null;
     actions.innerHTML = "";
     if (state.tab === "dashboard") renderDashboard(c, actions);
     else if (state.tab === "items") renderItems(c, actions);
     else if (state.tab === "ledger") renderLedger(c, actions);
     else if (state.tab === "requirement") renderRequirement(c, actions);
     else if (state.tab === "backup") renderBackup(c, actions);
+    if (refocus) {
+      var el = document.getElementById("searchBox");
+      if (el) {
+        el.focus();
+        try {
+          el.setSelectionRange(refocus.selStart, refocus.selEnd);
+        } catch (e) {
+        }
+      }
+    }
   }
   function renderDashboard(c, actions) {
     var totalItems = state.items.length;
@@ -28501,7 +28519,7 @@ ${m2}`;
       var q = state.search.items.toLowerCase();
       return !q || (r.itemName || "").toLowerCase().indexOf(q) > -1 || (r.supplierName || "").toLowerCase().indexOf(q) > -1 || (r.specification || "").toLowerCase().indexOf(q) > -1;
     });
-    var html = '<div class="toolbar"><input type="search" placeholder="Search item, specification or supplier\u2026" value="' + esc(state.search.items) + '" oninput="state.search.items=this.value; renderOnly()"><span class="count-pill">' + rows.length + " of " + state.items.length + "</span></div>";
+    var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item, specification or supplier\u2026" value="' + esc(state.search.items) + '" oninput="state.search.items=this.value; renderOnly()"><span class="count-pill">' + rows.length + " of " + state.items.length + "</span></div>";
     if (!rows.length) {
       html += emptyState(state.items.length ? "No items match your search." : "No items yet. Add your first part, or import an Excel/CSV file exported from your rate-list sheet.");
     } else {
@@ -28560,7 +28578,7 @@ ${m2}`;
       var mf = !state.filter.department || r.departmentName === state.filter.department;
       return mq && mf;
     });
-    var html = '<div class="toolbar"><input type="search" placeholder="Search part, party, bill or rack\u2026" value="' + esc(state.search.ledger) + '" oninput="state.search.ledger=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
+    var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search part, party, bill or rack\u2026" value="' + esc(state.search.ledger) + '" oninput="state.search.ledger=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
       return "<option " + (state.filter.department === d ? "selected" : "") + ' value="' + escAttr(d) + '">' + esc(d) + "</option>";
     }).join("") + '</select><span class="count-pill">' + rows.length + " of " + state.ledger.length + "</span></div>";
     if (!rows.length) {
@@ -28569,7 +28587,7 @@ ${m2}`;
       html += '<div class="tablewrap"><table><thead><tr><th>Photo</th><th>Sr</th><th>Date</th><th>Spare Part</th><th>Party / Bill</th><th>Uom</th><th>Opening</th><th>Received</th><th>Total</th><th>Issued</th><th>Balance</th><th>Department</th><th>Rack</th><th></th></tr></thead><tbody>';
       rows.forEach(function(r) {
         var balCls = num(r.balanceStock) <= 0 ? "low" : num(r.balanceStock) <= state.settings.lowStock ? "mid" : "ok";
-        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(r.date) + "</td><td>" + esc(r.sparePartName) + "</td><td>" + esc(r.partyName) + (r.billNo ? ' <span class="rowtxt-sub">#' + esc(r.billNo) + "</span>" : "") + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.openingStock) + '</td><td class="num">' + fmt(r.receivedQty) + '</td><td class="num">' + fmt(r.totalStock) + '</td><td class="num">' + fmt(r.issueQty) + '</td><td class="num"><span class="tag ' + balCls + '">' + fmt(r.balanceStock) + "</span></td><td>" + esc(r.departmentName) + "</td><td>" + esc(r.rackLocation) + '</td><td class="actions">' + iconBtn("edit", "openLedgerForm('" + r.id + "')") + iconBtn("del", "confirmDelete('ledger','" + r.id + "','" + escAttr(r.sparePartName) + "')") + "</td></tr>";
+        html += "<tr><td>" + (r.photo ? '<img class="thumb" src="' + r.photo + '" onclick="viewPhoto(this.src)">' : '<span class="thumb-placeholder"></span>') + "</td><td>" + esc(r.srNo) + "</td><td>" + esc(fmtDate(r.date)) + "</td><td>" + esc(r.sparePartName) + "</td><td>" + esc(r.partyName) + (r.billNo ? ' <span class="rowtxt-sub">#' + esc(r.billNo) + "</span>" : "") + "</td><td>" + esc(r.uom) + '</td><td class="num">' + fmt(r.openingStock) + '</td><td class="num">' + fmt(r.receivedQty) + '</td><td class="num">' + fmt(r.totalStock) + '</td><td class="num">' + fmt(r.issueQty) + '</td><td class="num"><span class="tag ' + balCls + '">' + fmt(r.balanceStock) + "</span></td><td>" + esc(r.departmentName) + "</td><td>" + esc(r.rackLocation) + '</td><td class="actions">' + iconBtn("edit", "openLedgerForm('" + r.id + "')") + iconBtn("del", "confirmDelete('ledger','" + r.id + "','" + escAttr(r.sparePartName) + "')") + "</td></tr>";
       });
       html += "</tbody></table></div>";
     }
@@ -28641,7 +28659,7 @@ ${m2}`;
       var mf = !state.filter.department || r.department === state.filter.department;
       return mq && mf;
     });
-    var html = '<div class="toolbar"><input type="search" placeholder="Search item\u2026" value="' + esc(state.search.req) + '" oninput="state.search.req=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
+    var html = '<div class="toolbar"><input id="searchBox" type="search" placeholder="Search item\u2026" value="' + esc(state.search.req) + '" oninput="state.search.req=this.value; renderOnly()"><select onchange="state.filter.department=this.value; renderOnly()"><option value="">All departments</option>' + depts.map(function(d) {
       return "<option " + (state.filter.department === d ? "selected" : "") + ' value="' + escAttr(d) + '">' + esc(d) + "</option>";
     }).join("") + '</select><span class="count-pill">' + rows.length + " of " + state.req.length + "</span></div>";
     if (!rows.length) {
